@@ -1,21 +1,31 @@
 import React from 'react';
+import { useState } from 'react';
 import './App.css';
 import policy from '../policy.json';
 
 function App() {
-  const handleClick = () => {
-    alert("button clicked");
-  }
-
+  
   return (
-    <div>
-      <button onClick={handleClick}>Test</button>
-    </div>
+    <>
+      <div>
+        <PageButton display={"passiveSonar"}/>
+        <PageButton display={"activeSonar"}/>
+        <PageButton display={"defenseSystem"}/>
+      </div>
+    </>
   );
 }
 
-function Button() {
-  
+function PageButton({display}) {
+  const hasAccess = policy[display];
+
+  function ChangePage() {
+    alert("button clicked!");
+  }
+
+  return (
+    <button onClick={ChangePage} disabled={!hasAccess}>{display}</button>
+  );
 }
 
 export default App

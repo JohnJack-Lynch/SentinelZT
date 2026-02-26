@@ -1,5 +1,5 @@
 {
-    "passiveSonar":true,
+    "passiveSonar":false,
     "activeSonar":true,
     "defenseSystem":true
 }
