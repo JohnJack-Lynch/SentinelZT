@@ -1,0 +1,16 @@
+version: "1.0.0"
+
+roles:
+  ADMIN:
+    network: true
+    exec: true
+    read: true
+    write: true
+    privileged: true
+
+  TEST:
+    network: true
+    exec: true
+    read: true
+    write: true
+    privileged: true

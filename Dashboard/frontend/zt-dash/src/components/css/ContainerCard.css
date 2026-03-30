@@ -1,0 +1,136 @@
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+    );
+    pointer-events: none;
+}
+
+.card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.card__name {
+    color: var(--green-bright);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.card__meta {
+    color: var(--green-muted);
+    font-size: 10px;
+}
+
+.card__badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.threat-badge {
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid currentColor;
+}
+
+.status-dot {
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+.status-dot--running { color: var(--green-bright); }
+.status-dot--stopped { color: #666; }
+
+.card__metrics {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.metric {
+    flex: 1;
+}
+
+.metric__label {
+    color: var(--green-muted);
+    font-size: 9px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.metric__value {
+    color: #5a8a6a;
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card__role {
+    font-size: 9px;
+    color: #2a5a3a;
+    letter-spacing: 1px;
+}
+
+.card__role span {
+    color: #7adfaa;
+}
+
+.perm_chips {
+    display: flex;
+    gap: 4px;
+}
+
+.perm_chip {
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+}
+
+.perm_chip--allow {
+    background: rgba(0, 255, 159, 0.1);
+    color: var(--green-mid);
+    border: 1px solid rgba(0, 170, 90, 0.2);
+}
+
+.perm_chip--deny {
+    background: rgba(255, 45, 45, 0.1);
+    color: #cc2222;
+    border: 1px solid rgba(170, 34, 34, 0.2);
+}
+
+.card__alert-footer {
+    margin-top: 8px;
+    border-top: 1px solid #1a2a1a;
+    padding-top: 8px;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
