@@ -17,6 +17,21 @@ export const MOCK_CONTAINERS = [
     recentCmds: ["curl internal-tac-api/status", "cat /etc/hosts"],
     alerts: [],
     ip: "10.0.1.11",
+    },
+    
+    {
+    id: "ctr-tac-01",
+    name: "tactical-proxy-alpha",
+    role: "TEST",
+    status: "running",
+    image: "nav-tactical:2.4.1",
+    uptime: "14h 22m",
+    cpu: 23,
+    memory: 61,
+    network: { rx: "1.2 MB/s", tx: "0.4 MB/s" },
+    recentCmds: ["curl internal-tac-api/status", "cat /etc/hosts"],
+    alerts: [],
+    ip: "10.0.1.11",
     }
 ]
 

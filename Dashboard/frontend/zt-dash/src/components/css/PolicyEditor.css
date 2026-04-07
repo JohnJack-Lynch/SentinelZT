@@ -1,19 +1,6 @@
-.card {
+.pol-edit {
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
     color: #ffffff;
     background-color: #1d1d1d;
     border: 1px solid #56e769;
-
-    padding: 14px 16px;
-}
-
-.perm-chips {
-    display: flex;
-    gap: 4px;
-}
-
-.perm-chip {
-    font-size: 12px;
-    letter-spacing: 1px;
-    padding: 1px 5px;
 }
