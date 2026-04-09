@@ -2,18 +2,13 @@ import { useState } from "react";
 import { threatLevel, togglePerm } from "../util/util";
 import "./css/DetailsPanel.css";
 
-export default function DetailsPanel({container: c, policy, onPolicyChange, currentUserRole, onClose}) {
+export default function DetailsPanel({container: c, policy, onPolicyChange, onClose}) {
     const threat = threatLevel(c);
-    const canEdit = currentUserRole === "CYBER_OFFICER";
 
     const [isolating, setIsolating] = useState(false);
     const [isolated, setIsolated] = useState(false);
 
     const handleTogglePerm = (perm) => {
-        if (!canEdit) {
-            return;
-        }
-
         onPolicyChange(togglePerm(policy, c.role, perm));
     };
 
@@ -68,30 +63,29 @@ export default function DetailsPanel({container: c, policy, onPolicyChange, curr
                 <section>
                     <div className="section-label">Role Permissions ... [{c.role}]</div>
 
+                    {/* 
                     {!canEdit && (
                         <div className="readonly-warning">! READ-ONLY — CYBER OFFICER ROLE REQUIRED TO MODIFY !</div>
                     )}
-
+                    */}
                     <div className="perm-grid">
                         {Object.entries(policy.roles[c.role] || {}).map(([perm, allowed]) => (
-                            <button key={perm} onClick={() => handleTogglePerm(perm)} disabled={!canEdit} className={`perm-toggle-btn perm-toggle-btn--${allowed ? "allow" : "deny"}`} style={{ cursor: canEdit ? "pointer" : "default" }}>
+                            <button key={perm} onClick={() => handleTogglePerm(perm)} className={`perm-toggle-btn perm-toggle-btn--${allowed ? "allow" : "deny"}`}>
                                 <span className="perm-toggle-btn__name">{perm.toUpperCase()}</span>
                                 <span className={`perm-toggle-btn__value--${allowed ? "allow" : "deny"}`}>{allowed ? "ALLOW" : "DENY"}</span>
                             </button>
                         ))}
                     </div>
                 </section>
-                
-                {canEdit && (
-                    <div className="actions">
-                        <div className="section-label">Actions</div>
-                        <div className="actions__row">
-                            <button className={`action-btn action-btn--isolate${isolated ? "-done" : ""}`} onClick={handleContIsolate} disabled={isolating || isolated}>{isolating ? "ISOLATING..." : isolated ? "ISOLATED" : "ISOLATE CONTAINER"}</button>
-                            <button className="action-btn action-btn--restart">FORCE RESTART</button>
-                            <button className="action-btn action-btn--export">EXPORT AUDIT LOG</button>
-                        </div>
+
+                <div className="actions">
+                    <div className="section-label">Actions</div>
+                    <div className="actions__row">
+                        <button className={`action-btn action-btn--isolate${isolated ? "-done" : ""}`} onClick={handleContIsolate} disabled={isolating || isolated}>{isolating ? "ISOLATING..." : isolated ? "ISOLATED" : "ISOLATE CONTAINER"}</button>
+                        <button className="action-btn action-btn--restart">FORCE RESTART</button>
+                        <button className="action-btn action-btn--export">EXPORT AUDIT LOG</button>
                     </div>
-                )}
+                </div>
             </div>
 
             

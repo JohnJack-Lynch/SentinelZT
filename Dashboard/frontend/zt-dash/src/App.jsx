@@ -12,7 +12,7 @@ import { threatLevel, getTimeStringFormatted } from "../src/util/util.js";
 import './App.css';
 
 function App() {
-	const [currentUserRole, setCurrentUserRole] = useState("CYBER_OFFICER");
+	const [currentUserRole, setCurrentUserRole] = useState("ADMIN");
 	const [policy, setPolicy] = useState(INIT_POLICY);
 	const [containers, setContainers] = useState(MOCK_CONTAINERS);
 	const [selectedId, setSelectedId] = useState(null);
@@ -85,7 +85,7 @@ function App() {
 						
 						{selectedContainer && (
 							<div className="detail-panel">
-								<DetailsPanel container={selectedContainer} policy={policy} onPolicyChange={handlePolicyChange} currentUserRole={currentUserRole} onClose={() => setSelectedId(null)}/>
+								<DetailsPanel container={selectedContainer} policy={policy} onPolicyChange={handlePolicyChange} onClose={() => setSelectedId(null)}/>
 							</div>
 						)}
 					</>
@@ -93,7 +93,7 @@ function App() {
 
 				{activeTab === "policy" && (
 					<div className="tab-view">
-						<PolicyEditor policy={policy} onPolicyChange={handlePolicyChange} currentUserRole={currentUserRole}/>
+						<PolicyEditor policy={policy} onPolicyChange={handlePolicyChange}/>
 					</div>
 				)}
 
