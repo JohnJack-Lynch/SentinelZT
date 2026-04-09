@@ -1,0 +1,29 @@
+{
+    "name":"szt-policy",
+    "version":"0.0.0.0",
+    "roles":{
+        "ADMIN": {
+            "network":true,
+            "executive":true,
+            "read":true,
+            "write":true,
+            "privileged":true
+        },
+
+        "NAVAL_OFFICER": {
+            "network":true,
+            "executive":false,
+            "read":true,
+            "write":false,
+            "privileged":false
+        },
+
+        "ENGINEER": {
+            "network":true,
+            "executive":false,
+            "read":true,
+            "write":true,   
+            "privileged":false
+        }
+    }
+}
