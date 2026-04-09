@@ -25,7 +25,28 @@ export default function PolicyEditor({policy, onPolicyChange, currentUserRole}) 
 
                 <div style={{ overflowX: "auto" }}>
                     <table className="policy-table">
-
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                {PERM_COLUMNS.map((p) => (
+                                    <th key={p}>{p.toUpperCase().slice(0, 4)}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(policy.roles).map(([role, perms]) => (
+                                <tr key={role}>
+                                    <td className="policy-table__role">{role}</td>
+                                    {PERM_COLUMNS.map((perm) => (
+                                        <td key={perm} className="policy-table__cell">
+                                            <button className={`perm-matrix-btn perm-matrix-btn--${perms[perm] ? "allow" : "deny"}`} onClick={() => handleToggle(role, perm)} disabled={!canEdit} title={`${role} / ${perm}: ${perms[perm] ? "ALLOW" : "DENY"}`}>
+                                                {perms[perm] ? "Y" : "N"}
+                                            </button>
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
                     </table>
                 </div>
             </div>
