@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import ContainerCard from '../src/components/ContainerCard.jsx';
 import DetailsPanel from '../src/components/DetailsPanel.jsx';
@@ -9,43 +9,126 @@ import { INIT_POLICY } from "../src/data/initialPolicy.js";
 import { ROLES, MOCK_CONTAINERS, AUDIT_SEED } from "../src/data/mockData.js";
 import { threatLevel, getTimeStringFormatted } from "../src/util/util.js";
 
+import "../src/data/policy.json";
+
 import './App.css';
+
+import { fetchAuditLog, fetchContainers, fetchPolicy, isolateContainer, savePolicy } from './api/client.js';
+
+// refresh rate for polling data
+const POLL_RATE = 3000;
 
 function App() {
 	const [currentUserRole, setCurrentUserRole] = useState("ADMIN");
-	const [policy, setPolicy] = useState(INIT_POLICY);
-	const [containers, setContainers] = useState(MOCK_CONTAINERS);
-	const [selectedId, setSelectedId] = useState(null);
+	const [policy, setPolicy] = useState(null);
+	const [containers, setContainers] = useState([]);
+	const [selectedId, setSelectedId] = useState([]);
 	const [activeTab, setActiveTab] = useState("containers");
-	const [auditLog, setAuditLog] = useState(AUDIT_SEED);
+	const [auditLog, setAuditLog] = useState(null);
 	const [sysMsg, setSysMsg] = useState(null);
 
+	const [error, setError] = useState(null);
+	const [loading, setLoading] = useState(true);
+
 	const selectedContainer = containers.find((c) => c.id === selectedId) ?? null;
+
+	// initial loading
+	// throws an error if the backend cannot be reached
+
+	useEffect(() => {
+		async function init() {
+			try {
+				const [cont, pol, logs] = await Promise.all([fetchContainers(), fetchPolicy(), fetchAuditLog()]);
+				setContainers(cont);
+				setPolicy(pol);
+				setAuditLog(logs);
+			} catch(err) {
+				setError(err.message);
+			} finally {
+				setLoading(false);
+			}
+		}
+		init();
+	}, []);
+
+	// polling
+	// grabs container and log info at a fixed rate (see above)
+
+	useEffect(() => {
+		const interval = setInterval(async () => {
+			try {
+				const [cont, logs] = await Promise.all([fetchContainers(), fetchAuditLog()]);
+				setContainers(cont);
+				setAuditLog(logs);
+				setError(null);
+			} catch(err) {
+				setError(err.message);
+			}
+		}, POLL_RATE);
+
+		return () => clearInterval(interval);
+	}, []);
+
+	// handlers
 
 	const handleSelectContainer = (id) => {
     	setSelectedId((prev) => (prev === id ? null : id));
 	};
 
-	const handlePolicyChange = (updatedPolicy) => {
-    	setPolicy(updatedPolicy);
-		setAuditLog((prev) => [
-			{
-				time:   getTimeStringFormatted(),
-				actor:  currentUserRole,
-				action: "POLICY",
-				target: "ROLE_MATRIX",
-				msg:    "Policy updated via dashboard",
-			},
-			...prev,
-			]);
-			setSysMsg("POLICY UPDATED — CHANGES PROPAGATED TO ALL CONTAINERS");
+	const handlePolicyChange = useCallback(async (updatedPolicy) => {
+		try {
+			const saved = await savePolicy(updatedPolicy);
+			setPolicy(saved);
+			setAuditLog(await fetchAuditLog());
+			setSysMsg("Policy updated, changes sent to all containers.");
 			setTimeout(() => setSysMsg(null), 3000);
-	};
+		} catch(err) {
+			setSysMsg(`ERROR: ${err.message}`);
+			setTimeout(() => setSysMsg(null), 4000);
+		}
+	});
+
+	const handleIsolate = useCallback(async (id) => {
+		await isolateContainer(id);
+		const [cont, logs] = await Promise.all([fetchContainers(), fetchAuditLog()]);
+		setContainers(cont);
+		setAuditLog(logs);
+	});
+
+	const handleRestart = useCallback(async (id) => {
+		await restartContainer(id);
+		const [cont, log] = await Promise.all([fetchContainers(), fetchAuditLog()]);
+		setContainers(cont);
+		setAuditLog(log);
+	});
 
 	const handleTabChange = (tabId) => {
 		setActiveTab(tabId);
 		if (tabId !== "containers") setSelectedId(null);
 	};
+
+	// loading screen
+
+	if (loading) {
+		return (
+			<div className="screen-center screen-center--loading">
+				Connecting to Docker...
+			</div>
+		)
+	};
+
+	// error message
+
+	if (error && containers.length === 0) {
+		return (
+			<div className="screen-center screen-center--error">
+				<div>!! CONNECTION FAILURE !!</div>
+				<div className="screen-center-sub">{error}</div>
+			</div>
+		)
+	};
+
+
 
 	const totalAlerts = containers.reduce((n, c) => n + c.alerts.length, 0);
 	const critCount = containers.filter((c) => threatLevel(c) === "critical").length;
@@ -58,12 +141,33 @@ function App() {
 		{id: "logs", label: "LOGS"}
 	];
 
+	// output to browser
+
 	return (
 		<div className="app">
 			<header>
-				<h1 className="title-header">Sentinel<span id='zt'>ZT</span></h1>
-				<h2 className="subheader">Dependable security in environements untrustworthy.</h2>
+				<div className="header-left">
+					<h1 className="title-header">Sentinel<span id='zt'>ZT</span></h1>
+					<h2 className="subheader">Dependable security in environements untrustworthy.</h2>
+				</div>
+
+				<div className="header-right">
+					<div className="status-pills">
+						<span className="pill-online">{runCount}/{containers.length} ONLINE</span>
+						{critCount > 0 && (
+							<span className="warning-pill">{critCount} CRITICAL</span>
+						)}
+						{warnCount > 0 && (
+							<span className="warning-pill">{warnCount} WARNINGS</span>
+						)}
+						{error && (
+							<span className="warning-pill">!! BACKEND UNSTABLE !!</span>
+						)}
+					</div>
+				</div>
 			</header>
+
+			{sysMsg && <div className="sys-banner">{sysMsg}</div>}
 
 			<nav className="tabs">
 				{TABS.map((tab) => (

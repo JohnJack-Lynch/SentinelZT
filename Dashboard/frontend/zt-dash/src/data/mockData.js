@@ -20,7 +20,7 @@ export const MOCK_CONTAINERS = [
     },
     
     {
-    id: "ctr-tac-01",
+    id: "ctr-tac-02",
     name: "tactical-proxy-alpha",
     role: "TEST",
     status: "running",

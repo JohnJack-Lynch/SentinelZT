@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { threatLevel, togglePerm } from "../util/util";
+import { threatLevel, THREAT_COLOR, togglePerm } from "../util/util";
 import "./css/DetailsPanel.css";
 
 export default function DetailsPanel({container: c, policy, onPolicyChange, onClose}) {
     const threat = threatLevel(c);
+    const threatCol = THREAT_COLOR[threat]
 
     const [isolating, setIsolating] = useState(false);
     const [isolated, setIsolated] = useState(false);

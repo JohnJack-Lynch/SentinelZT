@@ -16,6 +16,18 @@ export function threatLevel(container) {
     }
 }
 
+export const THREAT_LABEL = {
+    critical: "CRITICAL",
+    warning:  "WARNING",
+    normal:  "NORMAL"
+};
+
+export const THREAT_COLOR = {
+    critical: "#ff2d2d",
+    warning:  "#ffaa00",
+    normal:  "#00ff9f"
+};
+
 /**
  * toggles the permissions of a single role and returns a new policy object
  * @param {object} policy 
