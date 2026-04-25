@@ -1,110 +1,118 @@
-// ─── API Client ───────────────────────────────────────────────────────────────
+// ─── API Client (Loki implementation) ────────────────────────────────────────
 //
-// This is the ONLY file that talks to the backend.
-// When you know what your backend looks like, fill in each function below.
-//
-// Each function must:
-//   - return a Promise
-//   - resolve with the data shape described in its comment
-//   - throw an Error if the request fails (the UI handles it)
-//
-// Currently each function runs against mock data so the dashboard works
-// while the backend is being built. Replace the mock body with your real
-// fetch/axios/etc. call when you're ready.
+// fetchContainers and fetchAuditLog query Loki directly.
+// fetchPolicy / savePolicy use local state (Loki is read-only).
+// isolateContainer / restartContainer are stubs — need the small backend API.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { MOCK_CONTAINERS, AUDIT_SEED } from "../data/mockData.js";
-import { INIT_POLICY } from "../data/initialPolicy.js";
-import { getTimeStringFormatted } from "../util/util.js";
+import { LOKI_CONFIG } from "./lokiConfig";
+import { queryZeekLog } from "./lokiQuery";
+import { parseConnLogs, parseNoticeLogs, zeekTsToTime, formatBytes, noticeToLevel } from "./zeekParsers";
+import { INIT_POLICY } from "../data/initialPolicy";
+import { getTimeStringFormatted } from "../util/util";
 
-// ─── Local mock state (delete once backend is wired) ─────────────────────────
-let _containers = MOCK_CONTAINERS.map((c) => ({ ...c }));
-let _policy     = { ...INIT_POLICY };
-let _auditLog   = [...AUDIT_SEED];
+// ─── Local policy state ───────────────────────────────────────────────────────
+// Policy lives on the frontend until the backend API is in place.
+// savePolicy updates this in memory; changes are lost on page refresh.
+let _policy   = { ...INIT_POLICY };
+let _auditLog = [];
 
 function _logAudit(actor, action, target, msg) {
   _auditLog = [{ time: getTimeStringFormatted(), actor, action, target, msg }, ..._auditLog];
 }
 
-function _tickStats() {
-  _containers = _containers.map((c) =>
-    c.status !== "running" ? c : {
-      ...c,
-      cpu:    Math.max(0, Math.min(100, c.cpu    + ((Math.random() * 6  - 3)   | 0))),
-      memory: Math.max(0, Math.min(100, c.memory + ((Math.random() * 4  - 1.5) | 0))),
-    }
-  );
-}
 // ─────────────────────────────────────────────────────────────────────────────
 
 
 /**
  * fetchContainers
  *
- * Returns a list of all containers (running and stopped).
+ * Queries Loki for recent Zeek conn.log entries, groups them by source IP,
+ * and maps each IP to a container using LOKI_CONFIG.containerMap.
  *
- * Expected return shape — array of objects:
- * [
- *   {
- *     id:         string,   // short container ID, e.g. "ctr-eng-01"
- *     name:       string,   // container name, e.g. "engine-monitor-charlie"
- *     status:     string,   // "running" | "stopped" | "exited"
- *     image:      string,   // image name + tag, e.g. "eng-mon:3.1.0"
- *     ip:         string,   // container IP, e.g. "10.0.1.13"
- *     role:       string,   // one of the roles defined in policy.yaml
- *     uptime:     string,   // human-readable, e.g. "6h 10m"
- *     cpu:        number,   // 0–100 (percentage)
- *     memory:     number,   // 0–100 (percentage)
- *     network: {
- *       rx:       string,   // e.g. "1.2 MB/s"
- *       tx:       string,   // e.g. "0.4 MB/s"
- *     },
- *     recentCmds: string[], // last N commands run inside the container
- *     alerts: [             // active threat events for this container
- *       {
- *         level:  string,   // "critical" | "warning"
- *         msg:    string,   // human-readable description
- *         time:   string,   // "HH:MM:SS"
- *       }
- *     ],
- *   }
- * ]
- *
- * TODO: replace mock body with your backend call, e.g.:
- *   const res = await fetch("/api/containers");
- *   if (!res.ok) throw new Error(await res.text());
- *   return res.json();
+ * Containers in containerMap that had no recent traffic are included as
+ * "running" with zero stats — Zeek only sees active connections.
  */
 export async function fetchContainers() {
-  //_tickStats();
-  return structuredClone(_containers);
+  // Fetch conn.log and notice.log in parallel
+  const [connLines, noticeLines] = await Promise.all([
+    queryZeekLog("conn"),
+    queryZeekLog("notice"),
+  ]);
+
+  const connLogs   = parseConnLogs(connLines);
+  const noticeLogs = parseNoticeLogs(noticeLines);
+
+  // Group connections by source IP
+  const byIp = {};
+  for (const conn of connLogs) {
+    const ip = conn.orig_h;
+    if (!byIp[ip]) byIp[ip] = [];
+    byIp[ip].push(conn);
+  }
+
+  // Group notices by source IP
+  const noticesByIp = {};
+  for (const notice of noticeLogs) {
+    const ip = notice.src;
+    if (!noticesByIp[ip]) noticesByIp[ip] = [];
+    noticesByIp[ip].push(notice);
+  }
+
+  // Build a container object for each entry in containerMap
+  return Object.entries(LOKI_CONFIG.containerMap).map(([ip, meta]) => {
+    const conns   = byIp[ip]       ?? [];
+    const notices = noticesByIp[ip] ?? [];
+
+    // Derive rx/tx from bytes across all connections in the window
+    const rxBytes = conns.reduce((n, c) => n + c.resp_bytes, 0);
+    const txBytes = conns.reduce((n, c) => n + c.orig_bytes, 0);
+
+    // Recent commands aren't available from network logs alone —
+    // this would need a separate Zeek script or syslog source.
+    // Leaving as empty array; fill in once you have that data.
+    const recentCmds = [];
+
+    // Shape notices into the alert format the dashboard expects
+    const alerts = notices.map((n) => ({
+      level: noticeToLevel(n.note),
+      msg:   n.msg,
+      time:  zeekTsToTime(n.ts),
+    }));
+
+    // Estimate memory/cpu — Zeek doesn't provide these.
+    // High connection volume or large byte counts are used as a proxy.
+    // Replace with real metrics once you have a metrics source.
+    const connCount = conns.length;
+    const cpu    = Math.min(Math.round(connCount * 2), 100);
+    const memory = Math.min(Math.round((rxBytes + txBytes) / 10_000), 100);
+
+    return {
+      id:      meta.id,
+      name:    meta.name,
+      role:    meta.role,
+      image:   meta.image,
+      ip,
+      status:  conns.length > 0 ? "running" : "running", // Zeek can't tell us if a container is stopped
+      uptime:  "—",                                       // not available from Zeek
+      cpu,
+      memory,
+      network: {
+        rx: formatBytes(rxBytes),
+        tx: formatBytes(txBytes),
+      },
+      recentCmds,
+      alerts,
+    };
+  });
 }
 
 
 /**
  * fetchPolicy
  *
- * Returns the current role-based permission policy.
- *
- * Expected return shape:
- * {
- *   version: string,       // e.g. "1.0.0"
- *   updated: string,       // ISO 8601 timestamp
- *   roles: {
- *     [roleName]: {
- *       network:    boolean,
- *       exec:       boolean,
- *       read:       boolean,
- *       write:      boolean,
- *       privileged: boolean,
- *     }
- *   }
- * }
- *
- * TODO: replace mock body with your backend call, e.g.:
- *   const res = await fetch("/api/policy");
- *   if (!res.ok) throw new Error(await res.text());
- *   return res.json();
+ * Returns the in-memory policy. Loki is read-only so policy state
+ * lives on the frontend until the backend API is available.
  */
 export async function fetchPolicy() {
   return structuredClone(_policy);
@@ -114,19 +122,15 @@ export async function fetchPolicy() {
 /**
  * savePolicy
  *
- * Sends an updated policy object to the backend to be persisted.
- * Receives the full updated policy object and returns the saved version.
+ * Updates in-memory policy. Changes are lost on page refresh.
+ * When the backend API is ready, replace this with a PUT request.
  *
- * @param {object} updatedPolicy — same shape as fetchPolicy return value
- * @returns {object} — the saved policy (may include server-updated `updated` timestamp)
- *
- * TODO: replace mock body with your backend call, e.g.:
+ * TODO:
  *   const res = await fetch("/api/policy", {
  *     method:  "PUT",
  *     headers: { "Content-Type": "application/json" },
  *     body:    JSON.stringify(updatedPolicy),
  *   });
- *   if (!res.ok) throw new Error(await res.text());
  *   return res.json();
  */
 export async function savePolicy(updatedPolicy) {
@@ -139,69 +143,64 @@ export async function savePolicy(updatedPolicy) {
 /**
  * isolateContainer
  *
- * Tells the backend to cut off all network access for a container.
- * The backend should disconnect the container from every Docker network.
+ * Not possible via Loki — needs the backend API to disconnect the container
+ * from Docker networks. Logs a warning for now.
  *
- * @param {string} id — container ID
- * @returns {{ ok: boolean }}
- *
- * TODO: replace mock body with your backend call, e.g.:
+ * TODO:
  *   const res = await fetch(`/api/containers/${id}/isolate`, { method: "POST" });
- *   if (!res.ok) throw new Error(await res.text());
  *   return res.json();
  */
 export async function isolateContainer(id) {
-  _containers = _containers.map((c) =>
-    c.id === id ? { ...c, status: "exited", cpu: 0, memory: 0 } : c
+  console.warn(
+    `isolateContainer("${id}") called — backend API required to action this. ` +
+    `Loki is read-only and cannot control Docker.`
   );
-  _logAudit("CYBER_OFFICER", "ISOLATE", id, "Container disconnected from all networks");
-  return { ok: true };
+  _logAudit("SYSTEM", "ISOLATE", id, "⚠ Isolation requested — backend API not yet connected");
+  return { ok: false, reason: "Backend API required" };
 }
 
 
 /**
  * restartContainer
  *
- * Tells the backend to force-restart a container.
+ * Not possible via Loki — needs the backend API.
  *
- * @param {string} id — container ID
- * @returns {{ ok: boolean }}
- *
- * TODO: replace mock body with your backend call, e.g.:
+ * TODO:
  *   const res = await fetch(`/api/containers/${id}/restart`, { method: "POST" });
- *   if (!res.ok) throw new Error(await res.text());
  *   return res.json();
  */
 export async function restartContainer(id) {
-  _containers = _containers.map((c) =>
-    c.id === id ? { ...c, status: "running", cpu: 2, memory: 10 } : c
+  console.warn(
+    `restartContainer("${id}") called — backend API required to action this.`
   );
-  _logAudit("CYBER_OFFICER", "RESTART", id, "Container force-restarted");
-  return { ok: true };
+  _logAudit("SYSTEM", "RESTART", id, "⚠ Restart requested — backend API not yet connected");
+  return { ok: false, reason: "Backend API required" };
 }
 
 
 /**
  * fetchAuditLog
  *
- * Returns the full audit log, newest entry first.
+ * Merges two sources:
+ *   1. Zeek notice.log entries from Loki (real threat detections)
+ *   2. In-memory entries from user actions in this session (policy changes etc.)
  *
- * Expected return shape — array of objects:
- * [
- *   {
- *     time:   string,  // "HH:MM:SS"
- *     actor:  string,  // who triggered the event, e.g. "CYBER_OFFICER" or "SYSTEM"
- *     action: string,  // event type: "ALERT" | "POLICY" | "ISOLATE" | "RESTART" | "START" | "STOP" | "AUTH" | "INSPECT"
- *     target: string,  // what was acted on, e.g. a container ID or role name
- *     msg:    string,  // human-readable description
- *   }
- * ]
- *
- * TODO: replace mock body with your backend call, e.g.:
- *   const res = await fetch("/api/audit");
- *   if (!res.ok) throw new Error(await res.text());
- *   return res.json();
+ * Sorted newest first.
  */
 export async function fetchAuditLog() {
-  return structuredClone(_auditLog);
+  const noticeLines = await queryZeekLog("notice");
+  const noticeLogs  = parseNoticeLogs(noticeLines);
+
+  const lokiEntries = noticeLogs.map((n) => ({
+    time:   zeekTsToTime(n.ts),
+    actor:  "ZEEK",
+    action: "ALERT",
+    target: n.src,
+    msg:    n.msg,
+  }));
+
+  // Merge Loki entries with local session entries, newest first
+  return [..._auditLog, ...lokiEntries].sort((a, b) =>
+    b.time.localeCompare(a.time)
+  );
 }

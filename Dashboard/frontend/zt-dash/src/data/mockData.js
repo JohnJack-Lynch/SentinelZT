@@ -1,13 +1,14 @@
 export const ROLES = [
     "CYBER_OFFICER",
-    "TEST"
+    "NAVAL_OFFICER",
+    "ENGINEER"
 ];
 
 export const MOCK_CONTAINERS = [
     {
     id: "ctr-tac-01",
     name: "tactical-proxy-alpha",
-    role: "TEST",
+    role: "NAVAL_OFFICER",
     status: "running",
     image: "nav-tactical:2.4.1",
     uptime: "14h 22m",
@@ -22,7 +23,7 @@ export const MOCK_CONTAINERS = [
     {
     id: "ctr-tac-02",
     name: "tactical-proxy-alpha",
-    role: "TEST",
+    role: "ENGINEER",
     status: "running",
     image: "nav-tactical:2.4.1",
     uptime: "14h 22m",
