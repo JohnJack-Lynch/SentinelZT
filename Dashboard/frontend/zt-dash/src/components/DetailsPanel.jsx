@@ -84,7 +84,7 @@ export default function DetailsPanel({container: c, policy, onPolicyChange, onCl
                     <div className="actions__row">
                         <button className={`action-btn action-btn--isolate${isolated ? "-done" : ""}`} onClick={handleContIsolate} disabled={isolating || isolated}>{isolating ? "ISOLATING..." : isolated ? "ISOLATED" : "ISOLATE CONTAINER"}</button>
                         <button className="action-btn action-btn--restart">FORCE RESTART</button>
-                        <button className="action-btn action-btn--export">EXPORT AUDIT LOG</button>
+                        {/*<button className="action-btn action-btn--export">EXPORT AUDIT LOG</button>*/}
                     </div>
                 </div>
             </div>

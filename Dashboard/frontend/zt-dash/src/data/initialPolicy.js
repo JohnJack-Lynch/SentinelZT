@@ -9,12 +9,19 @@ export const INIT_POLICY = {
             write: true,
             privileged: true
         },
-        TEST: {
+        NAVAL_OFFICER: {
             network: true,
-            exec: true,
+            exec: false,
+            read: true,
+            write: false,
+            privileged: false
+        },
+        ENGINEER: {
+            network: true,
+            exec: false,
             read: true,
             write: true,
-            privileged: true
+            privileged: false,
         }
     }
 }
