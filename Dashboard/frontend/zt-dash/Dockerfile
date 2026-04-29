@@ -3,5 +3,6 @@ WORKDIR /zt-dash
 COPY package*.json .
 RUN npm install 
 COPY . .
-CMD ["npm", "run", "dev"]
+ENV VITE_LOKI_URL=http://loki:3100
 EXPOSE 5173
+CMD ["npm", "run", "dev"]

@@ -1,4 +1,6 @@
-import { LOKI_CONFIG } from "./lokiConfig";
+import { LOKI_CONFIG } from './lokiConfig.js';
+
+const LOKI_BASE = "/loki";
 
 // ─── Loki HTTP API ────────────────────────────────────────────────────────────
 // Loki exposes two relevant endpoints:
@@ -16,7 +18,7 @@ import { LOKI_CONFIG } from "./lokiConfig";
  * @returns {string[]}       - array of raw log line strings, newest first
  */
 export async function queryLoki(logql, limit = 500) {
-  const now   = Date.now() * 1_000_000;                     // nanoseconds
+  const now = Date.now() * 1_000_000; // nanoseconds
   const start = now - LOKI_CONFIG.lookbackNs;
 
   const params = new URLSearchParams({
@@ -24,11 +26,11 @@ export async function queryLoki(logql, limit = 500) {
     start:     String(start),
     end:       String(now),
     limit:     String(limit),
-    direction: "backward",                                   // newest first
+    direction: "backward", // newest first
   });
 
   const res = await fetch(
-    `${LOKI_CONFIG.url}/loki/api/v1/query_range?${params}`,
+    `${LOKI_BASE}/loki/api/v1/query_range?${params}`,
     {
       headers: {
         "Content-Type": "application/json",

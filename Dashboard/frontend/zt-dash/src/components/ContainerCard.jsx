@@ -28,11 +28,13 @@ export default function ContainerCard({container: c, policy, onSelect, selected}
             
             <div className="card-footer">
                 <div className="card-role">ROLE: <span>{c.role}</span></div>
+                {/*
                 <div className="perm-chips">
                     {Object.entries(perms).map(([perm, allowed]) => (
                         <span key={perm} className={`perm-chip perm-chip--${allowed ? "allow" : "deny"}`}>{permShorthand(perm)}</span>
                     ))}
                 </div>
+                */}
             </div>
         </div>
     );

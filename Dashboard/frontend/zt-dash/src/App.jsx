@@ -111,9 +111,9 @@ function App() {
 
 	if (loading) {
 		return (
-			<div className="screen-center screen-center--loading">
+			<h2 className="screen-center screen-center--loading">
 				Connecting to Docker...
-			</div>
+			</h2>
 		)
 	};
 
@@ -122,8 +122,8 @@ function App() {
 	if (error && containers.length === 0) {
 		return (
 			<div className="screen-center screen-center--error">
-				<div>!! CONNECTION FAILURE !!</div>
-				<div className="screen-center-sub">{error}</div>
+				<h2>!! CONNECTION FAILURE !!</h2>
+				<h3 className="screen-center-sub">{error}</h3>
 			</div>
 		)
 	};

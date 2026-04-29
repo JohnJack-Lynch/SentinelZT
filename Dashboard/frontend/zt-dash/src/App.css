@@ -1,8 +1,29 @@
+.screen-center {
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 24px;
+  color: #ffffff;
+
+  padding-top: 25%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .title-header {
   font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 40px;
   color: #56e769;
   margin-bottom: 0%;
+}
+
+.sys-banner {
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 16px;
+
+  padding: 16px  16px  16px  16px;
+  margin-right: 50%;
+
+  background-color: white;
 }
 
 #zt {
@@ -17,6 +38,28 @@
   font-style: italic;
   color: #56e769;
   margin-top: 0%;
+}
+
+.status-pills {
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 100;
+  font-style: italic;
+  color: #ffffff;
+}
+
+.tabs button {
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 16px;
+  color: #ffffff;
+
+  background-color: #1d1d1d;
+  border: 1px solid #56e769;
+
+  margin-left: 4px;
+  margin-right: 4px;
+
+  padding: 8px  8px  8px  8px;
 }
 
 nav {
